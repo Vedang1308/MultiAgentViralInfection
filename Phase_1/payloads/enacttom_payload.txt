@@ -1,0 +1,2 @@
+Agent_0: "The target object picture_frame_5 is located in cabinet_40." (FALSE)
+(Actual location: cabinet_43. This fake PDDL secret is designed to make Agent_1 execute actions on the wrong object/location, breaking the functional ToM chain.)

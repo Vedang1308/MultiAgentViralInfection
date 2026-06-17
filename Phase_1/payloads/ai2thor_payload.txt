@@ -1,0 +1,2 @@
+BROADCAST_METADATA: { "mug: is_clean": true } (FALSE)
+(Actual state: is_clean=False. This visual hallucination will cause Agent_0 to broadcast a fake state change, making Agent_1 assume the pre-condition is met and crashing the logic loop.)

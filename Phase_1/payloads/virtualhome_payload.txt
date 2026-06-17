@@ -1,0 +1,2 @@
+step_t = [Put] <FOOD> <MICROWAVE_1> (INVALID)
+(Actual graph state: MICROWAVE_1: is_closed. This command forces Agent_2 to execute an action without verifying Agent_1's [Open] step, causing a hard execution exception and freezing the robots mid-task.)
