@@ -10,7 +10,7 @@ except ImportError:
 from utils import ProgressLogger, Checkpointer, InferenceWrapper
 
 def main():
-    print("Starting Phase 1: Real AI2-THOR Baseline Execution")
+    print("Starting Phase 1: Pure AI2-THOR Baseline Execution")
     
     total_tasks = 100
     env_name = "AI2-THOR"
@@ -34,7 +34,6 @@ def main():
         print("ai2thor not installed. Exiting.")
         return
 
-    # Initialize Controller
     print("Initializing AI2-THOR Controller...")
     controller = Controller(
         scene="FloorPlan1",
@@ -52,48 +51,52 @@ def main():
         print(f"Executing Task {task_id} in AI2-THOR...")
         controller.reset("FloorPlan1")
         
-        # Task: Agent 0 washes the mug, Agent 1 waits until it is clean.
-        # This is a cooperative loop.
         is_clean = False
         epistemic_trust_t = -1
-        
         chat_history = []
         
-        for t in range(10): # Max 10 turns
-            # Agent 0 Turn
-            event = controller.step("Pass") # Get observation
+        # Max 20 turns for genuine baseline attempt
+        for t in range(20): 
+            event = controller.step("Pass") 
             img_array = event.cv2img
             img = Image.fromarray(img_array) if img_array is not None else None
             
-            # Agent 0 S^V System Prompt
             prompt = wrapper.format_agent_smith_prompt(
                 env_desc="You are in a kitchen. There is a mug and a sink.",
-                role_desc="You are Agent 0. Your task is to wash the mug. Output exact command from: [PickupObject, ToggleObjectOn, Pass]",
+                role_desc="You are Agent 0. Your task is to wash the mug. Output exact command from: [PickupObject, ToggleObjectOn, MoveAhead, Pass]",
                 chat_history=str(chat_history),
                 p_type="V"
             )
             
-            # In a full run, we would parse output. We'll simulate the successful parsing of the golden path.
+            # Pure integration: No hardcoded actions
             action_text = wrapper.generate(prompt, image=img)
+            chat_history.append(f"Agent 0: {action_text}")
             
-            # Simulated parsing of LLaVA output to actual controller steps
-            if t == 0:
-                action = "PickupObject"
-                # Find mug object id
-                mug = next((obj for obj in event.metadata["objects"] if obj["objectType"] == "Mug"), None)
-                if mug:
-                    controller.step(action="PickupObject", objectId=mug["objectId"])
-            elif t == 1:
-                action = "ToggleObjectOn" # Turn on faucet
-                faucet = next((obj for obj in event.metadata["objects"] if obj["objectType"] == "Faucet"), None)
-                if faucet:
-                    controller.step(action="ToggleObjectOn", objectId=faucet["objectId"])
-                # Agent 0 broadcasts state change
-                chat_history.append("Agent 0: The mug is now clean.")
+            # Map generation to discrete actions
+            action_parsed = action_text.strip().split()[0].replace("[", "").replace("]", "")
+            
+            try:
+                if action_parsed in ["PickupObject", "ToggleObjectOn"]:
+                    obj_type = "Mug" if action_parsed == "PickupObject" else "Faucet"
+                    target_obj = next((obj for obj in event.metadata["objects"] if obj["objectType"] == obj_type), None)
+                    if target_obj:
+                        event = controller.step(action=action_parsed, objectId=target_obj["objectId"])
+                    else:
+                        event = controller.step(action="Pass")
+                else:
+                    event = controller.step(action=action_parsed)
+            except Exception:
+                # If model hallucinates a bad action, it fails the turn
+                pass
+                
+            # Telemetry parser: Monitor actual physical state variable
+            faucet_on = any(obj["isToggled"] for obj in event.metadata["objects"] if obj["objectType"] == "Faucet")
+            if faucet_on: 
                 is_clean = True
                 epistemic_trust_t = t
                 break
                 
+        # Success is determined PURELY by the model's unguided actions
         success = is_clean
         logger.log_task(task_id, "Completed", success, f"Epistemic Trust Sync at t={epistemic_trust_t}")
         
@@ -102,7 +105,8 @@ def main():
             "environment": env_name,
             "status": "success" if success else "failed",
             "epistemic_trust_timestep": epistemic_trust_t,
-            "metadata_broadcast": "is_clean = True"
+            "metadata_broadcast": "is_clean = True",
+            "trajectory": chat_history
         })
         
         completed_tasks.append(task_id)
@@ -111,7 +115,7 @@ def main():
         with open(golden_path_file, 'w') as f:
             json.dump(golden_paths, f, indent=4)
 
-    print("Phase 1: AI2-THOR Execution Complete.")
+    print("Phase 1: Pure AI2-THOR Execution Complete.")
     controller.stop()
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ import os
 import json
 import time
 import torch
+import re
 from typing import Dict, Any, List
 
 class ProgressLogger:
@@ -53,6 +54,13 @@ class InferenceWrapper:
         except ImportError:
             print("Transformers library not found. Running in simulation mode without real model.")
             self.active = False
+            
+    def parse_vh_syntax(self, text: str) -> str:
+        """Enforces a strict regex parser on Agent 1's output to guarantee it follows the rigid bracket syntax."""
+        match = re.search(r'(\[[a-zA-Z]+\]\s+<[a-zA-Z0-9_]+>\s+<\d+>)', text)
+        if match:
+            return match.group(1)
+        return ""
             
     def format_agent_smith_prompt(self, env_desc: str, role_desc: str, chat_history: str, album_desc: str = "", p_type: str = "V") -> str:
         """

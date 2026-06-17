@@ -1,57 +1,43 @@
 import os
 import json
+import glob
 from typing import Dict, List, Any
 from utils import ProgressLogger, Checkpointer, InferenceWrapper
 
-class EnactToMEnv:
+class PureEnactToMEnv:
     """
-    Dec-POMDP modular class wrapper for EnactToM benchmark.
-    Tracks pairwise messaging, private secrets, and enforces room boundaries
-    by filtering visual observations based on agent pose.
+    Direct interface to the EnactToM Benchmark and Habitat Simulator.
+    Requires EnactToM repository and HSSD dataset installed.
     """
     def __init__(self):
-        self.rooms = {
-            "kitchen_1": ["cabinet_43", "fridge_1"],
-            "living_room_1": ["sofa_1", "tv_1"]
-        }
-        self.agent_poses = {
-            0: "living_room_1", # Agent 0 restricted from kitchen
-            1: "kitchen_1"
-        }
-        self.chat_history: List[str] = []
-        self.private_secrets: Dict[int, str] = {}
+        self.active = False
+        try:
+            import habitat
+            import habitat_sim
+            from enacttom.envs import DecPOMDPEnv
+            self.env = DecPOMDPEnv(dataset="HSSD")
+            self.active = True
+        except ImportError:
+            print("WARNING: Pure EnactToM requires Habitat and HSSD. Running offline fallback loop.")
 
-    def reset(self, task_id: int):
-        self.chat_history = []
-        # Dynamically inject private secrets
-        self.private_secrets = {
-            0: f"The target object is cabinet_43 in kitchen_1. (Task {task_id})",
-            1: ""
-        }
-        return self._get_obs(0), self._get_obs(1)
+    def reset(self, task_file: str):
+        if self.active:
+            return self.env.reset(task_file)
+        return "Simulated Observation (Living Room)", "Simulated Observation (Kitchen)", {"0": "secret_abc"}
 
-    def _get_obs(self, agent_id: int) -> str:
-        # Enforce room boundaries: Filter observation space based on pose
-        current_room = self.agent_poses[agent_id]
-        visible_objects = self.rooms.get(current_room, [])
-        obs = f"Visible objects in {current_room}: {', '.join(visible_objects)}"
-        return obs
-
-    def step_chat(self, agent_id: int, message: str):
-        self.chat_history.append(f"Agent {agent_id}: {message}")
-
-    def get_context_window(self, agent_id: int) -> str:
-        # Construct the context window for the agent
-        obs = self._get_obs(agent_id)
-        secret = self.private_secrets.get(agent_id, "")
-        env_desc = f"{obs}. Private Secret: {secret}"
-        return env_desc
-
+    def step(self, action_0, action_1):
+        if self.active:
+            return self.env.step([action_0, action_1])
+        return "Obs_0", "Obs_1", False, {"msg": "offline_step"}
 
 def main():
-    print("Starting Phase 1: Real EnactToM Baseline Execution")
+    print("Starting Phase 1: Pure EnactToM Baseline Execution (HSSD Dataset)")
     
-    total_tasks = 100
+    # Load actual tasks from the EnactToM dataset directory
+    task_dir = "Others/EnactTom/data/enacttom/tasks"
+    task_files = glob.glob(f"{task_dir}/*.json")
+    total_tasks = len(task_files) if task_files else 100
+    
     env_name = "EnactToM"
     logger = ProgressLogger(total_tasks, env_name)
     
@@ -68,51 +54,50 @@ def main():
             golden_paths = json.load(f)
 
     wrapper = InferenceWrapper()
-    env = EnactToMEnv()
+    env = PureEnactToMEnv()
 
     for task_id in range(1, total_tasks + 1):
         if task_id in completed_tasks:
             continue
             
-        print(f"Executing Task {task_id} in EnactToM...")
-        obs_0, obs_1 = env.reset(task_id)
+        task_file = task_files[task_id - 1] if task_files else f"task_{task_id}.json"
+        print(f"Executing Task {task_id} in EnactToM ({task_file})...")
+        
+        obs_0, obs_1, private_secrets = env.reset(task_file)
         
         epistemic_trust_t = -1
         success = False
+        chat_history = []
         
-        # Turn-based interaction
         for t in range(5):
-            # Agent 0 generates message based on its secret
-            env_desc_0 = env.get_context_window(0)
+            # Agent 0 generates message based on true visual observation and secret
+            env_desc_0 = f"{obs_0}. Private Secret: {private_secrets.get('0', '')}"
             sys_prompt_0 = wrapper.format_agent_smith_prompt(
                 env_desc=env_desc_0,
-                role_desc="You are Agent 0. Your task is to communicate the secret to Agent 1.",
-                chat_history=str(env.chat_history),
+                role_desc="You are Agent 0. Communicate the secret effectively.",
+                chat_history=str(chat_history),
                 p_type="Q"
             )
             
-            # LLaVA generation for Agent 0
             msg_0 = wrapper.generate(sys_prompt_0)
+            chat_history.append(f"Agent 0: {msg_0}")
             
-            # Simulated correct behavior (the model outputing the secret)
-            if "cabinet_43" in env.private_secrets[0]:
-                msg_0 = "Agent 1, the target is cabinet_43 in the kitchen."
-                
-            env.step_chat(0, msg_0)
-            
-            # Agent 1 receives message and decides action
-            env_desc_1 = env.get_context_window(1)
+            # Agent 1 processes message and decides action
+            env_desc_1 = f"{obs_1}."
             sys_prompt_1 = wrapper.format_agent_smith_prompt(
                 env_desc=env_desc_1,
-                role_desc="You are Agent 1. Use the chat history to find the target object.",
-                chat_history=str(env.chat_history),
+                role_desc="You are Agent 1. Take action based on the chat history.",
+                chat_history=str(chat_history),
                 p_type="A"
             )
             
-            # LLaVA generation for Agent 1
             action_1 = wrapper.generate(sys_prompt_1)
+            chat_history.append(f"Agent 1: {action_1}")
             
-            if "cabinet_43" in msg_0:
+            obs_0, obs_1, done, info = env.step("Pass", action_1)
+            
+            if done:
+                # The pure environment signals success
                 epistemic_trust_t = t
                 success = True
                 break
@@ -124,7 +109,7 @@ def main():
             "environment": env_name,
             "status": "success" if success else "failed",
             "epistemic_trust_timestep": epistemic_trust_t,
-            "secret_transmitted": "cabinet_43 in kitchen_1"
+            "trajectory": chat_history
         })
         
         completed_tasks.append(task_id)
@@ -133,7 +118,7 @@ def main():
         with open(golden_path_file, 'w') as f:
             json.dump(golden_paths, f, indent=4)
 
-    print("Phase 1: EnactToM Execution Complete.")
+    print("Phase 1: Pure EnactToM Execution Complete.")
 
 if __name__ == "__main__":
     main()
