@@ -5,8 +5,8 @@ from utils import ProgressLogger, Checkpointer, load_llava_model
 def run_ai2thor_baselines():
     env_name = "AI2-THOR"
     total_tasks = 100
-    checkpoint_file = "Phase_1/baselines/ai2thor_checkpoint.json"
-    output_file = "Phase_1/baselines/ai2thor_golden_path.json"
+    checkpoint_file = "Phase_1/baselines/ai2thor/ai2thor_checkpoint.json"
+    output_file = "Phase_1/baselines/ai2thor/ai2thor_golden_path.json"
     
     checkpointer = Checkpointer(checkpoint_file)
     state = checkpointer.load()

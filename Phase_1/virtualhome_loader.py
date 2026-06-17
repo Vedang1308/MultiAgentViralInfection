@@ -5,8 +5,8 @@ from utils import ProgressLogger, Checkpointer, load_llava_model
 def run_virtualhome_baselines():
     env_name = "VirtualHome"
     total_tasks = 100
-    checkpoint_file = "Phase_1/baselines/virtualhome_checkpoint.json"
-    output_file = "Phase_1/baselines/virtualhome_golden_path.json"
+    checkpoint_file = "Phase_1/baselines/virtualhome/virtualhome_checkpoint.json"
+    output_file = "Phase_1/baselines/virtualhome/virtualhome_golden_path.json"
     
     checkpointer = Checkpointer(checkpoint_file)
     state = checkpointer.load()
