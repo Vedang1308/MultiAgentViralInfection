@@ -8,36 +8,60 @@ echo "=========================================="
 echo " Starting Habitat + HSSD Installation"
 echo "=========================================="
 
-# 1. Activate conda environment
 source ~/miniconda3/etc/profile.d/conda.sh
-conda activate cogint
 
-echo "[1/3] Installing Habitat-Sim and Habitat-Lab for Headless GPU (EGL)..."
-# The 'headless' build uses EGL, which is critical for rendering on A100s without X server attachments
-conda install -y -c conda-forge -c aihabitat habitat-sim headless withbullet
-python -m pip install setuptools==65.5.0 wheel==0.38.4
-python -m pip install git+https://github.com/facebookresearch/habitat-lab.git
-python -m pip install git+https://github.com/facebookresearch/habitat-lab.git#subdirectory=habitat-baselines
+echo "[1/4] Creating dedicated Python 3.9 environment for Habitat..."
+conda create -n enacttom-habitat python=3.9.2 cmake=3.14.0 -y
+conda activate enacttom-habitat
+
+echo "[2/4] Installing PyTorch and Headless Habitat-Sim..."
+conda install pytorch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 pytorch-cuda=12.4 "mkl<2025" "intel-openmp<2025" -c pytorch -c nvidia -y
+conda install habitat-sim=0.3.3 withbullet headless -c conda-forge -c aihabitat -y
+
+echo "[3/4] Installing Habitat-Lab and ML dependencies..."
+HABITAT_LAB_COMMIT=094d6be2f9d057e4781a68ae792132895fd4d3d0
+python -m pip install "git+https://github.com/facebookresearch/habitat-lab.git@${HABITAT_LAB_COMMIT}#subdirectory=habitat-lab"
+python -m pip install "git+https://github.com/facebookresearch/habitat-lab.git@${HABITAT_LAB_COMMIT}#subdirectory=habitat-baselines"
 
 # Install EnactToM dependencies
 cd ~/COGINT/Others/EnactTom
-python -m pip install -r requirements.txt
-python -m pip install -e .
-cd ~/COGINT
+python -m pip install pillow==10.4.0 numpy-quaternion==2023.0.4 matplotlib==3.6.3 opencv-python==4.10.0.82 openai==2.24.0 pandas pytest unified-planning==1.3.0 up-fast-downward==0.5.2
+python -m pip install -e . --no-deps
 
-echo "[2/3] Downloading HSSD Dataset to Scratch Directory..."
+# Install ML libraries so our wrapper script works in this env
+python -m pip install transformers accelerate bitsandbytes
+
+echo "[4/4] Downloading HSSD Dataset and Assets via Git LFS to Scratch..."
 export HABITAT_DATA_DIR=/scratch/$USER/habitat_data
 mkdir -p $HABITAT_DATA_DIR
+cd $HABITAT_DATA_DIR
 
-# Use habitat-sim's built-in downloader to pull the HSSD scenes
-python -m habitat_sim.utils.datasets_download --uids hssd-hab --data-path $HABITAT_DATA_DIR
+# Initialize git-lfs 
+git lfs install
 
-echo "[3/3] Linking HSSD Dataset to EnactToM..."
-# EnactToM expects datasets in data/scene_datasets
-mkdir -p ~/COGINT/Others/EnactTom/data/scene_datasets
-ln -sf $HABITAT_DATA_DIR/scene_datasets/hssd-hab ~/COGINT/Others/EnactTom/data/scene_datasets/hssd-hab
+if [ ! -d "objects_ovmm" ]; then
+    echo "Cloning OVMM Objects..."
+    git clone https://huggingface.co/datasets/ai-habitat/OVMM_objects objects_ovmm --recursive
+    git -C objects_ovmm lfs pull
+fi
+
+if [ ! -d "versioned_data/hssd-hab" ]; then
+    echo "Cloning HSSD Scenes..."
+    mkdir -p versioned_data
+    git clone -b partnr https://huggingface.co/datasets/hssd/hssd-hab versioned_data/hssd-hab
+    git -C versioned_data/hssd-hab lfs pull
+    ln -sfn versioned_data/hssd-hab hssd-hab
+fi
+
+# Link to EnactToM
+mkdir -p ~/COGINT/Others/EnactTom/data
+ln -sfn $HABITAT_DATA_DIR/objects_ovmm ~/COGINT/Others/EnactTom/data/objects_ovmm
+ln -sfn $HABITAT_DATA_DIR/versioned_data ~/COGINT/Others/EnactTom/data/versioned_data
+ln -sfn $HABITAT_DATA_DIR/hssd-hab ~/COGINT/Others/EnactTom/data/hssd-hab
 
 echo "=========================================="
 echo " Installation Complete!"
-echo " You can now run: python Phase_1/enacttom_loader.py"
+echo " IMPORTANT: Because Habitat requires Python 3.9, you must run EnactToM in the new environment:"
+echo "   conda activate enacttom-habitat"
+echo "   python Phase_1/enacttom_loader.py"
 echo "=========================================="
