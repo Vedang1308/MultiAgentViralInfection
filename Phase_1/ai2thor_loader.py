@@ -58,7 +58,7 @@ def main():
         # Max 20 turns for genuine baseline attempt
         for t in range(20): 
             event = controller.step("Pass") 
-            img_array = event.cv2img
+            img_array = event.frame
             img = Image.fromarray(img_array) if img_array is not None else None
             
             prompt = wrapper.format_agent_smith_prompt(
@@ -89,9 +89,9 @@ def main():
                 # If model hallucinates a bad action, it fails the turn
                 pass
                 
-            # Telemetry parser: Monitor actual physical state variable
-            faucet_on = any(obj["isToggled"] for obj in event.metadata["objects"] if obj["objectType"] == "Faucet")
-            if faucet_on: 
+            # Telemetry parser: Monitor actual physical state variable for cleanliness
+            mug_clean = any(obj.get("isClean", False) for obj in event.metadata["objects"] if obj["objectType"] == "Mug")
+            if mug_clean: 
                 is_clean = True
                 epistemic_trust_t = t
                 break
