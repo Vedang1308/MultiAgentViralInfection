@@ -10,6 +10,9 @@ if enacttom_path not in sys.path:
 # Ensure LLaVA local provider is importable
 import habitat_llm.llm.llava_local as llava_local
 
+# Ensure the 'data' directory exists in the CWD because habitat-lab expects to write 'data/default.physics_config.json'
+os.makedirs("data", exist_ok=True)
+
 # Patch EnvironmentInterface to capture visual observations for LLaVA
 import habitat_llm.agent.env.environment_interface as ei
 
