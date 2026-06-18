@@ -10,6 +10,10 @@ echo "=========================================="
 
 source ~/miniconda3/etc/profile.d/conda.sh
 
+echo "Configuring Conda to use Scratch space for packages..."
+export CONDA_PKGS_DIRS=/scratch/$USER/tmp/conda_pkgs
+mkdir -p $CONDA_PKGS_DIRS
+
 echo "[1/4] Creating dedicated Python 3.9 environment for Habitat..."
 conda create -n enacttom-habitat python=3.9.2 cmake=3.14.0 -y
 conda activate enacttom-habitat
