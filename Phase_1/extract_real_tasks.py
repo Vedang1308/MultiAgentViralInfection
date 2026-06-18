@@ -85,6 +85,10 @@ def extract_tasks():
 
         new_ep = copy.deepcopy(ep)
         new_ep['problem_pddl'] = problem_pddl
+        new_ep['task_id'] = task_name
+        new_ep['title'] = task_name
+        new_ep['category'] = "cooperative"
+        new_ep['num_agents'] = 2
         
         # Remove legacy fields to satisfy EnactToM parser strict checks
         if 'evaluation_propositions' in new_ep:
@@ -96,7 +100,7 @@ def extract_tasks():
             
         out_path = os.path.join(TASKS_DIR, f"{task_name}.json")
         with open(out_path, 'w') as out_f:
-            json.dump({"episodes": [new_ep]}, out_f, indent=2)
+            json.dump(new_ep, out_f, indent=2)
             
     print(f"Successfully extracted and compiled 300 tasks into {TASKS_DIR}/")
 
