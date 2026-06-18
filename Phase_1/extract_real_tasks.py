@@ -2,11 +2,14 @@ import gzip
 import json
 import os
 import copy
+import getpass
+
+user = getpass.getuser()
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 enacttom_path = os.path.join(project_root, "Others", "EnactTom")
 
-EPISODES_FILE = os.path.join(enacttom_path, "data/datasets/enacttom_episodes/v0_0/train_2k.json.gz")
+EPISODES_FILE = f"/scratch/{user}/habitat_data/datasets/enacttom_episodes/v0_0/train_2k.json.gz"
 TASKS_DIR = os.path.join(enacttom_path, "data/enacttom/tasks")
 
 def extract_tasks():
