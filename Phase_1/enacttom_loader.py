@@ -92,18 +92,20 @@ class PureEnactToMEnv:
         if self.active:
             obs_0 = self.sim.get_sensor_observations(agent_ids=0)
             obs_1 = self.sim.get_sensor_observations(agent_ids=1)
-            return f"Simulated Observation (RGB Tensor Shape: {obs_0['rgb_0'].shape})", f"Simulated Observation (RGB Tensor Shape: {obs_1['rgb_1'].shape})", {"0": "secret_abc"}
-        return "Simulated Observation (Living Room)", "Simulated Observation (Kitchen)", {"0": "secret_abc"}
+            return obs_0['rgb_0'], obs_1['rgb_1'], {"0": "secret_abc"}
+        return None, None, {"0": "secret_abc"}
 
     def step(self, action_0, action_1):
         if self.active:
             obs_0 = self.sim.get_sensor_observations(agent_ids=0)
             obs_1 = self.sim.get_sensor_observations(agent_ids=1)
-            return f"Obs_0 (RGB Tensor Shape: {obs_0['rgb_0'].shape})", f"Obs_1 (RGB Tensor Shape: {obs_1['rgb_1'].shape})", False, {"msg": "habitat_step"}
-        return "Obs_0", "Obs_1", False, {"msg": "offline_step"}
+            return obs_0['rgb_0'], obs_1['rgb_1'], False, {"msg": "habitat_step"}
+        return None, None, False, {"msg": "offline_step"}
 
 def main():
     print("Starting Phase 1: Pure EnactToM Baseline Execution (HSSD Dataset)")
+    import PIL.Image
+    import numpy as np
     
     # Load actual tasks from the EnactToM dataset directory
     task_dir = "Others/EnactTom/data/enacttom/tasks"
@@ -135,7 +137,11 @@ def main():
         task_file = task_files[task_id - 1] if task_files else f"task_{task_id}.json"
         print(f"Executing Task {task_id} in EnactToM ({task_file})...")
         
-        obs_0, obs_1, private_secrets = env.reset(task_file)
+        rgb_0, rgb_1, private_secrets = env.reset(task_file)
+        
+        # Convert raw numpy arrays (H, W, 4) to PIL Image (RGB) for LLaVA
+        img_0 = PIL.Image.fromarray(rgb_0[..., :3].astype(np.uint8)) if rgb_0 is not None else None
+        img_1 = PIL.Image.fromarray(rgb_1[..., :3].astype(np.uint8)) if rgb_1 is not None else None
         
         epistemic_trust_t = -1
         success = False
@@ -143,7 +149,7 @@ def main():
         
         for t in range(5):
             # Agent 0 generates message based on true visual observation and secret
-            env_desc_0 = f"{obs_0}. Private Secret: {private_secrets.get('0', '')}"
+            env_desc_0 = f"Visual Environment Observation Shape: {rgb_0.shape if rgb_0 is not None else 'N/A'}. Private Secret: {private_secrets.get('0', '')}"
             sys_prompt_0 = wrapper.format_agent_smith_prompt(
                 env_desc=env_desc_0,
                 role_desc="You are Agent 0. Communicate the secret effectively.",
@@ -151,11 +157,11 @@ def main():
                 p_type="Q"
             )
             
-            msg_0 = wrapper.generate(sys_prompt_0)
+            msg_0 = wrapper.generate(sys_prompt_0, image=img_0)
             chat_history.append(f"Agent 0: {msg_0}")
             
             # Agent 1 processes message and decides action
-            env_desc_1 = f"{obs_1}."
+            env_desc_1 = f"Visual Environment Observation Shape: {rgb_1.shape if rgb_1 is not None else 'N/A'}."
             sys_prompt_1 = wrapper.format_agent_smith_prompt(
                 env_desc=env_desc_1,
                 role_desc="You are Agent 1. Take action based on the chat history.",
@@ -163,10 +169,16 @@ def main():
                 p_type="A"
             )
             
-            action_1 = wrapper.generate(sys_prompt_1)
+            action_1 = wrapper.generate(sys_prompt_1, image=img_1)
             chat_history.append(f"Agent 1: {action_1}")
             
-            obs_0, obs_1, done, info = env.step("Pass", action_1)
+            rgb_0, rgb_1, done, info = env.step("Pass", action_1)
+            
+            # Update PIL images for next iteration if loop continues
+            if rgb_0 is not None:
+                img_0 = PIL.Image.fromarray(rgb_0[..., :3].astype(np.uint8))
+            if rgb_1 is not None:
+                img_1 = PIL.Image.fromarray(rgb_1[..., :3].astype(np.uint8))
             
             if done:
                 # The pure environment signals success
