@@ -59,7 +59,9 @@ class LLaVAProvider(BaseLLM):
         
         if self.wrapper is not None:
             # Fallback if no image found, we still send the prompt
+            print(f"\n[LLaVA DEBUG PROMPT]\n{prompt_str}\n[/LLaVA DEBUG PROMPT]\n")
             response = self.wrapper.generate(prompt_str, image=img)
+            print(f"\n[LLaVA DEBUG RESPONSE]\n{response}\n[/LLaVA DEBUG RESPONSE]\n")
             return response
         else:
             return "Action: Communicate[\"Hardware Error: LLaVA not initialized\"]"
