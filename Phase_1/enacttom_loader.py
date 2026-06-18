@@ -12,6 +12,22 @@ import habitat_llm.llm.llava_local as llava_local
 
 # Ensure the 'data' directory exists in the CWD because habitat-lab expects to write 'data/default.physics_config.json'
 os.makedirs("data", exist_ok=True)
+import getpass
+user = getpass.getuser()
+scratch_hssd = f"/scratch/{user}/habitat_data/versioned_data/hssd-hab"
+try:
+    if not os.path.exists("data/hssd-hab"):
+        os.symlink(scratch_hssd, "data/hssd-hab")
+    
+    # Newer HSSD datasets flatten metadata into the root.
+    # Create the metadata folder and symlink the required files specifically.
+    meta_dir = f"{scratch_hssd}/metadata"
+    os.makedirs(meta_dir, exist_ok=True)
+    for file in ["object_categories_filtered.csv", "room_objects.json", "fpmodels-with-decomposed.csv", "affordance_objects.csv"]:
+        if not os.path.exists(f"{meta_dir}/{file}") and os.path.exists(f"{scratch_hssd}/{file}"):
+            os.symlink(f"../{file}", f"{meta_dir}/{file}")
+except OSError as e:
+    print(f"Warning: Failed to setup dataset symlinks: {e}")
 
 # Patch EnvironmentInterface to capture visual observations for LLaVA
 import habitat_llm.agent.env.environment_interface as ei
