@@ -37,6 +37,7 @@ def main():
     # We specify our custom LLaVA provider and task directory
     sys.argv = [
         "enacttom_loader.py",
+        "--config-name", "benchmark",
         "+model=llava-1.5",
         "+llm_provider=llava_local",
         "+task_dir=Others/EnactTom/data/enacttom/tasks",
