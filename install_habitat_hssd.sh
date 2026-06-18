@@ -4,6 +4,8 @@
 
 set -e
 
+REPO_ROOT=$(pwd)
+
 echo "=========================================="
 echo " Starting Habitat + HSSD Installation"
 echo "=========================================="
@@ -47,8 +49,6 @@ echo "[4/4] Downloading HSSD Dataset and Assets via Git LFS to Scratch..."
 export HABITAT_DATA_DIR=/scratch/$USER/habitat_data
 mkdir -p $HABITAT_DATA_DIR
 
-# Store current repo root
-REPO_ROOT=$(pwd)
 cd $HABITAT_DATA_DIR
 
 # Initialize git-lfs 
