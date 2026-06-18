@@ -39,7 +39,7 @@ def main():
         "enacttom_loader.py",
         "+model=llava-1.5",
         "+llm_provider=llava_local",
-        "task_dir=data/enacttom/tasks",
+        "+task_dir=Others/EnactTom/data/enacttom/tasks",
         # Default single-agent or multi-agent is handled by the task JSON
     ]
     
