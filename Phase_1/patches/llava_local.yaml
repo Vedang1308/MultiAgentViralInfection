@@ -1,0 +1,7 @@
+llm:
+  _target_: habitat_llm.llm.llava_local.LLaVAProvider
+
+generation_params:
+  model: "llava-1.5"
+  temperature: 0.2
+  max_tokens: 128
