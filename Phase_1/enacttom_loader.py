@@ -41,6 +41,8 @@ def main():
         "+model=llava-1.5",
         "+llm_provider=llava_local",
         "+task_dir=Others/EnactTom/data/enacttom/tasks",
+        "habitat.dataset.data_path=/scratch/vavaghad/habitat_data/datasets/enacttom_episodes/v0_0/train_2k.json.gz",
+        "habitat.dataset.scenes_dir=/scratch/vavaghad/habitat_data/versioned_data/hssd-hab",
         # Default single-agent or multi-agent is handled by the task JSON
     ]
     
