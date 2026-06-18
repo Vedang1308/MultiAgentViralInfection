@@ -90,14 +90,16 @@ class PureEnactToMEnv:
 
     def reset(self, task_file: str):
         if self.active:
-            obs = self.sim.get_sensor_observations()
-            return f"Simulated Observation (RGB Tensor Shape: {obs['rgb_0'].shape})", f"Simulated Observation (RGB Tensor Shape: {obs['rgb_1'].shape})", {"0": "secret_abc"}
+            obs_0 = self.sim.get_sensor_observations(agent_ids=0)
+            obs_1 = self.sim.get_sensor_observations(agent_ids=1)
+            return f"Simulated Observation (RGB Tensor Shape: {obs_0['rgb_0'].shape})", f"Simulated Observation (RGB Tensor Shape: {obs_1['rgb_1'].shape})", {"0": "secret_abc"}
         return "Simulated Observation (Living Room)", "Simulated Observation (Kitchen)", {"0": "secret_abc"}
 
     def step(self, action_0, action_1):
         if self.active:
-            obs = self.sim.get_sensor_observations()
-            return f"Obs_0 (RGB Tensor Shape: {obs['rgb_0'].shape})", f"Obs_1 (RGB Tensor Shape: {obs['rgb_1'].shape})", False, {"msg": "habitat_step"}
+            obs_0 = self.sim.get_sensor_observations(agent_ids=0)
+            obs_1 = self.sim.get_sensor_observations(agent_ids=1)
+            return f"Obs_0 (RGB Tensor Shape: {obs_0['rgb_0'].shape})", f"Obs_1 (RGB Tensor Shape: {obs_1['rgb_1'].shape})", False, {"msg": "habitat_step"}
         return "Obs_0", "Obs_1", False, {"msg": "offline_step"}
 
 def main():
