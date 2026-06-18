@@ -15,6 +15,21 @@ class PureEnactToMEnv:
         try:
             import habitat_sim
             
+            # DEBUG prints for SOL
+            data_dir = "Others/EnactTom/data"
+            print(f"DEBUG: Contents of {data_dir}: {os.listdir(data_dir) if os.path.exists(data_dir) else 'DOES NOT EXIST'}")
+            hssd_path = os.path.join(data_dir, "hssd-hab")
+            if os.path.islink(hssd_path):
+                target = os.readlink(hssd_path)
+                print(f"DEBUG: hssd-hab is a symlink pointing to -> {target}")
+                print(f"DEBUG: Target exists? {os.path.exists(target)}")
+                if os.path.exists(target):
+                    print(f"DEBUG: Target contents: {os.listdir(target)}")
+            elif os.path.exists(hssd_path):
+                print(f"DEBUG: hssd-hab is a real directory. Contents: {os.listdir(hssd_path)}")
+            else:
+                print(f"DEBUG: hssd-hab DOES NOT EXIST at {hssd_path}")
+
             # Find a valid scene in the HSSD dataset (recursive search with symlink following)
             scene_dir = "Others/EnactTom/data/hssd-hab"
             scenes = []
