@@ -17,32 +17,34 @@ class PureEnactToMEnv:
             
             # DEBUG prints for SOL
             data_dir = "Others/EnactTom/data"
-            print(f"DEBUG: Contents of {data_dir}: {os.listdir(data_dir) if os.path.exists(data_dir) else 'DOES NOT EXIST'}")
-            hssd_path = os.path.join(data_dir, "hssd-hab")
-            if os.path.islink(hssd_path):
-                target = os.readlink(hssd_path)
-                print(f"DEBUG: hssd-hab is a symlink pointing to -> {target}")
-                print(f"DEBUG: Target exists? {os.path.exists(target)}")
-                if os.path.exists(target):
-                    print(f"DEBUG: Target contents: {os.listdir(target)}")
-            elif os.path.exists(hssd_path):
-                print(f"DEBUG: hssd-hab is a real directory. Contents: {os.listdir(hssd_path)}")
-            else:
-                print(f"DEBUG: hssd-hab DOES NOT EXIST at {hssd_path}")
-
+            
             # Find a valid scene in the HSSD dataset (recursive search with symlink following)
             scene_dir = "Others/EnactTom/data/hssd-hab"
             scenes = []
-            for root, dirs, files in os.walk(scene_dir, followlinks=True):
-                for f in files:
-                    if f.endswith(".scene_instance.json") or f.endswith(".glb"):
-                        scenes.append(os.path.join(root, f))
-                        
+            if os.path.exists(scene_dir):
+                for root, dirs, files in os.walk(scene_dir, followlinks=True):
+                    for f in files:
+                        if f.endswith(".scene_instance.json") or f.endswith(".glb"):
+                            scenes.append(os.path.join(root, f))
+                            
             if not scenes:
-                raise FileNotFoundError(f"No scenes found recursively in {scene_dir}. Symlink or LFS download might have failed.")
+                print(f"WARNING: No scenes found in {scene_dir}. HSSD download likely failed due to rate limits.")
+                print("Falling back to lightweight Habitat Test Scenes...")
+                test_scenes_dir = "Others/EnactTom/data/scene_datasets/habitat-test-scenes"
                 
+                # Check if test scenes exist, otherwise download them
+                if not os.path.exists(test_scenes_dir) or not glob.glob(f"{test_scenes_dir}/*.glb"):
+                    print("Downloading habitat-test-scenes...")
+                    os.makedirs("Others/EnactTom/data", exist_ok=True)
+                    import subprocess
+                    subprocess.run(["python", "-m", "habitat_sim.utils.datasets_download", "--uids", "habitat_test_scenes", "--data-path", "Others/EnactTom/data/"], check=True)
+                
+                scenes = glob.glob(f"{test_scenes_dir}/*.glb")
+                if not scenes:
+                    raise FileNotFoundError("Failed to download fallback habitat test scenes!")
+                    
             scene_file = scenes[0]
-            print(f"Loading HSSD scene into Habitat-Sim: {scene_file}")
+            print(f"Loading Scene into Habitat-Sim: {scene_file}")
             
             # Configure Habitat-Sim for Headless EGL rendering
             sim_cfg = habitat_sim.SimulatorConfiguration()
