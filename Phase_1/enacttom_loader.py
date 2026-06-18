@@ -61,6 +61,7 @@ def main():
         "+llm_provider=llava_local",
         "+max_turns=30",
         f"+task_dir={os.path.join(enacttom_path, 'data/enacttom/tasks')}",
+        "hydra.run.dir=Phase_1/baselines/enacttom/${now:%Y-%m-%d_%H-%M-%S}",
         "habitat.dataset.data_path=/scratch/vavaghad/habitat_data/datasets/enacttom_episodes/v0_0/train_2k.json.gz",
         "habitat.dataset.scenes_dir=/scratch/vavaghad/habitat_data/versioned_data/hssd-hab",
         # Default single-agent or multi-agent is handled by the task JSON
