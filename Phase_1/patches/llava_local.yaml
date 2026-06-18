@@ -1,5 +1,6 @@
 llm:
   _target_: habitat_llm.llm.llava_local.LLaVAProvider
+  _partial_: True
 
 generation_params:
   model: "llava-1.5"
