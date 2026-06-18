@@ -12,11 +12,13 @@ source ~/miniconda3/etc/profile.d/conda.sh
 
 echo "Configuring Conda to use Scratch space for packages..."
 export CONDA_PKGS_DIRS=/scratch/$USER/tmp/conda_pkgs
+export ENV_PREFIX=/scratch/$USER/tmp/envs/enacttom-habitat
 mkdir -p $CONDA_PKGS_DIRS
+mkdir -p /scratch/$USER/tmp/envs
 
-echo "[1/4] Creating dedicated Python 3.9 environment for Habitat..."
-conda create -n enacttom-habitat python=3.9.2 cmake=3.14.0 -y
-conda activate enacttom-habitat
+echo "[1/4] Creating dedicated Python 3.9 environment for Habitat in Scratch..."
+conda create -p $ENV_PREFIX python=3.9.2 cmake=3.14.0 -y
+conda activate $ENV_PREFIX
 
 echo "[2/4] Installing PyTorch and Headless Habitat-Sim..."
 conda install pytorch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 pytorch-cuda=12.4 "mkl<2025" "intel-openmp<2025" -c pytorch -c nvidia -y
@@ -66,6 +68,6 @@ ln -sfn $HABITAT_DATA_DIR/hssd-hab ~/COGINT/Others/EnactTom/data/hssd-hab
 echo "=========================================="
 echo " Installation Complete!"
 echo " IMPORTANT: Because Habitat requires Python 3.9, you must run EnactToM in the new environment:"
-echo "   conda activate enacttom-habitat"
+echo "   conda activate /scratch/\$USER/tmp/envs/enacttom-habitat"
 echo "   python Phase_1/enacttom_loader.py"
 echo "=========================================="
