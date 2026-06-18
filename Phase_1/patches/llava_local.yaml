@@ -6,3 +6,13 @@ generation_params:
   model: "llava-1.5"
   temperature: 0.2
   max_tokens: 128
+
+system_message: 'You are an expert at task planning.'
+system_tag: ""
+user_tag: ""
+assistant_tag: ""
+eot_tag: ""
+keep_message_history: False
+verbose: True
+use_image_input: True
+save_prompt_images: False
