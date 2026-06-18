@@ -11,7 +11,7 @@ import shutil
 # Automatically copy patches into EnactToM so Hydra and Python can find them
 patch_dir = os.path.join(os.path.dirname(__file__), "patches")
 shutil.copy(os.path.join(patch_dir, "llava_local.py"), os.path.join(enacttom_path, "habitat_llm/llm/llava_local.py"))
-shutil.copy(os.path.join(patch_dir, "llava_local.yaml"), os.path.join(enacttom_path, "habitat_llm/conf/llm_provider/llava_local.yaml"))
+shutil.copy(os.path.join(patch_dir, "llava_local.yaml"), os.path.join(enacttom_path, "habitat_llm/conf/llm/llava_local.yaml"))
 
 # Ensure LLaVA local provider is importable
 import habitat_llm.llm.llava_local as llava_local
