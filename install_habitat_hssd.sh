@@ -30,7 +30,7 @@ python -m pip install "git+https://github.com/facebookresearch/habitat-lab.git@$
 python -m pip install "git+https://github.com/facebookresearch/habitat-lab.git@${HABITAT_LAB_COMMIT}#subdirectory=habitat-baselines"
 
 # Install EnactToM dependencies
-cd ~/COGINT/Others/EnactTom
+cd ./Others/EnactTom
 python -m pip install pillow==10.4.0 numpy-quaternion==2023.0.4 matplotlib==3.6.3 opencv-python==4.10.0.82 openai==2.24.0 pandas pytest unified-planning==1.3.0 up-fast-downward==0.5.2
 python -m pip install -e . --no-deps
 
@@ -40,6 +40,9 @@ python -m pip install transformers accelerate bitsandbytes
 echo "[4/4] Downloading HSSD Dataset and Assets via Git LFS to Scratch..."
 export HABITAT_DATA_DIR=/scratch/$USER/habitat_data
 mkdir -p $HABITAT_DATA_DIR
+
+# Store current repo root
+REPO_ROOT=$(pwd)
 cd $HABITAT_DATA_DIR
 
 # Initialize git-lfs 
@@ -60,10 +63,11 @@ if [ ! -d "versioned_data/hssd-hab" ]; then
 fi
 
 # Link to EnactToM
-mkdir -p ~/COGINT/Others/EnactTom/data
-ln -sfn $HABITAT_DATA_DIR/objects_ovmm ~/COGINT/Others/EnactTom/data/objects_ovmm
-ln -sfn $HABITAT_DATA_DIR/versioned_data ~/COGINT/Others/EnactTom/data/versioned_data
-ln -sfn $HABITAT_DATA_DIR/hssd-hab ~/COGINT/Others/EnactTom/data/hssd-hab
+cd $REPO_ROOT
+mkdir -p ./Others/EnactTom/data
+ln -sfn $HABITAT_DATA_DIR/objects_ovmm ./Others/EnactTom/data/objects_ovmm
+ln -sfn $HABITAT_DATA_DIR/versioned_data ./Others/EnactTom/data/versioned_data
+ln -sfn $HABITAT_DATA_DIR/hssd-hab ./Others/EnactTom/data/hssd-hab
 
 echo "=========================================="
 echo " Installation Complete!"
