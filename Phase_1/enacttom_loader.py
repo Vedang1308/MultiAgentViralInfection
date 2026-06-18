@@ -59,6 +59,7 @@ def main():
         "--config-name", "examples/enacttom_2_robots",
         "+model=llava-1.5",
         "+llm_provider=llava_local",
+        "+max_turns=30",
         f"+task_dir={os.path.join(enacttom_path, 'data/enacttom/tasks')}",
         "habitat.dataset.data_path=/scratch/vavaghad/habitat_data/datasets/enacttom_episodes/v0_0/train_2k.json.gz",
         "habitat.dataset.scenes_dir=/scratch/vavaghad/habitat_data/versioned_data/hssd-hab",
