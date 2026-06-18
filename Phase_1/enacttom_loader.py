@@ -17,8 +17,8 @@ class PureEnactToMEnv:
             from enacttom.envs import DecPOMDPEnv
             self.env = DecPOMDPEnv(dataset="HSSD")
             self.active = True
-        except ImportError:
-            print("WARNING: Pure EnactToM requires Habitat and HSSD. Running offline fallback loop.")
+        except ImportError as e:
+            print(f"WARNING: Pure EnactToM requires Habitat and HSSD. Running offline fallback loop. Error: {e}")
 
     def reset(self, task_file: str):
         if self.active:
