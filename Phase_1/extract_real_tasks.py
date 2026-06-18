@@ -89,6 +89,10 @@ def extract_tasks():
         new_ep['title'] = task_name
         new_ep['category'] = "cooperative"
         new_ep['num_agents'] = 2
+        new_ep['agent_actions'] = {
+            "agent_0": ['Navigate', 'Pick', 'Place', 'Open', 'Close', 'Rearrange', 'Wait', 'Communicate', 'FindReceptacleTool', 'FindObjectTool', 'FindAgentActionTool', 'FindRoomTool'],
+            "agent_1": ['Navigate', 'Pick', 'Place', 'Open', 'Close', 'Rearrange', 'Wait', 'Communicate', 'FindReceptacleTool', 'FindObjectTool', 'FindAgentActionTool', 'FindRoomTool']
+        }
         
         # Remove legacy fields to satisfy EnactToM parser strict checks
         if 'evaluation_propositions' in new_ep:
