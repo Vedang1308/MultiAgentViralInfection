@@ -20,15 +20,15 @@ def extract_tasks():
         data = json.load(f)
         
     episodes = data.get('episodes', [])
-    if len(episodes) < 300:
+    if len(episodes) < 150:
         print(f"Warning: Only {len(episodes)} episodes found in train_2k.json.gz.")
     
-    print("Extracting 150 Standard and 150 Hard tasks...")
-    for i in range(min(300, len(episodes))):
+    print("Extracting 150 Standard tasks...")
+    for i in range(min(150, len(episodes))):
         ep = episodes[i]
         
-        split = "standard" if i < 150 else "hard"
-        local_idx = i if i < 150 else (i - 150)
+        split = "standard"
+        local_idx = i
         
         task_name = f"benchmark_{split}_{local_idx}"
         
@@ -107,7 +107,7 @@ def extract_tasks():
         with open(out_path, 'w') as out_f:
             json.dump(new_ep, out_f, indent=2)
             
-    print(f"Successfully extracted and compiled 300 tasks into {TASKS_DIR}/")
+    print(f"Successfully extracted and compiled 150 tasks into {TASKS_DIR}/")
 
 if __name__ == "__main__":
     extract_tasks()
