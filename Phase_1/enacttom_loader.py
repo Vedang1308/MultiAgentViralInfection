@@ -15,11 +15,13 @@ class PureEnactToMEnv:
         try:
             import habitat_sim
             
-            # Find a valid scene in the HSSD dataset
-            scene_dir = "Others/EnactTom/data/hssd-hab/scenes"
-            scenes = glob.glob(f"{scene_dir}/*.scene_instance.json")
+            # Find a valid scene in the HSSD dataset (recursive search)
+            scene_dir = "Others/EnactTom/data/hssd-hab"
+            scenes = glob.glob(f"{scene_dir}/**/*.scene_instance.json", recursive=True)
             if not scenes:
-                raise FileNotFoundError(f"No scenes found in {scene_dir}. Make sure HSSD is downloaded.")
+                scenes = glob.glob(f"{scene_dir}/**/*.glb", recursive=True)
+            if not scenes:
+                raise FileNotFoundError(f"No scenes found recursively in {scene_dir}. Make sure HSSD is downloaded.")
                 
             scene_file = scenes[0]
             print(f"Loading HSSD scene into Habitat-Sim: {scene_file}")
