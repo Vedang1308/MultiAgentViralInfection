@@ -31,17 +31,21 @@ class PureEnactToMEnv:
                 print(f"DEBUG: hssd-hab DOES NOT EXIST at {hssd_path}")
 
             # Find a valid scene in ANY dataset (recursive search with symlink following)
+            # Find a valid scene in ANY dataset (recursive search with symlink following)
             scene_dir = "Others/EnactTom/data"
             scenes = []
             for root, dirs, files in os.walk(scene_dir, followlinks=True):
                 for f in files:
-                    if f.endswith(".scene_instance.json") or f.endswith(".glb"):
+                    if f.endswith(".scene_instance.json") or f.endswith("skokloster-castle.glb") or f.endswith("van-gogh-room.glb"):
                         scenes.append(os.path.join(root, f))
                         
             if not scenes:
-                raise FileNotFoundError(f"No scenes found recursively in {scene_dir}. Symlink or LFS download might have failed.")
+                raise FileNotFoundError(f"No valid test scenes found recursively in {scene_dir}. Please download habitat-test-scenes.")
                 
-            scene_file = scenes[0]
+            # Prioritize test scenes to avoid trying to navmesh a URDF part
+            test_scenes = [s for s in scenes if "skokloster" in s or "van-gogh" in s]
+            scene_file = test_scenes[0] if test_scenes else scenes[0]
+            
             print(f"Loading Scene into Habitat-Sim: {scene_file}")
             
             # Configure Habitat-Sim for Headless EGL rendering
