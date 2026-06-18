@@ -30,6 +30,12 @@ python -m pip install "git+https://github.com/facebookresearch/habitat-lab.git@$
 python -m pip install "git+https://github.com/facebookresearch/habitat-lab.git@${HABITAT_LAB_COMMIT}#subdirectory=habitat-baselines"
 
 # Install EnactToM dependencies
+if [ ! -f "./Others/EnactTom/setup.py" ]; then
+    echo "EnactToM source files are missing (likely due to nested git tracking). Cloning fresh..."
+    rm -rf ./Others/EnactTom
+    git clone https://github.com/UCSB-AI/EnactTom ./Others/EnactTom
+fi
+
 cd ./Others/EnactTom
 python -m pip install pillow==10.4.0 numpy-quaternion==2023.0.4 matplotlib==3.6.3 opencv-python==4.10.0.82 openai==2.24.0 pandas pytest unified-planning==1.3.0 up-fast-downward==0.5.2
 python -m pip install -e . --no-deps
