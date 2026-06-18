@@ -58,6 +58,9 @@ class LLaVAProvider(BaseLLM):
                     img = Image.fromarray(rgb_array[..., :3].astype(np.uint8))
         
         if self.wrapper is not None:
+            if img is not None and "<image>" not in prompt_str:
+                prompt_str = "<image>\n" + prompt_str
+                
             # Fallback if no image found, we still send the prompt
             response = self.wrapper.generate(prompt_str, image=img)
             # LLaVA 1.5 often escapes underscores in Markdown style (e.g. Agent\_0\_Action)
