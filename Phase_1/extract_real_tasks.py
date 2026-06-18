@@ -87,6 +87,7 @@ def extract_tasks():
         new_ep['problem_pddl'] = problem_pddl
         new_ep['task_id'] = task_name
         new_ep['title'] = task_name
+        new_ep['task'] = ep.get('instruction', "No instruction provided.")
         new_ep['category'] = "cooperative"
         new_ep['num_agents'] = 2
         new_ep['agent_actions'] = {
