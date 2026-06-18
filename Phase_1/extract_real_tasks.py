@@ -6,7 +6,7 @@ import getpass
 
 user = getpass.getuser()
 
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 enacttom_path = os.path.join(project_root, "Others", "EnactTom")
 
 EPISODES_FILE = f"/scratch/{user}/habitat_data/datasets/enacttom_episodes/v0_0/train_2k.json.gz"

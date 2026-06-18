@@ -2,7 +2,7 @@ import os
 import sys
 
 # Add EnactTom to path so we can import its modules
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 enacttom_path = os.path.join(project_root, "Others", "EnactTom")
 if enacttom_path not in sys.path:
     sys.path.insert(0, enacttom_path)
