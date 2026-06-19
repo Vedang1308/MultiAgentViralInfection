@@ -183,12 +183,12 @@ class Qwen2VLWrapper:
 class Gemma3Wrapper:
     def __init__(self):
         try:
-            from transformers import AutoProcessor, AutoModelForCausalLM
+            from transformers import AutoProcessor, AutoModelForImageTextToText
             import torch
             print("Loading Gemma-3 12B IT in bfloat16...")
             model_id = "google/gemma-3-12b-it"
             self.processor = AutoProcessor.from_pretrained(model_id)
-            self.model = AutoModelForCausalLM.from_pretrained(
+            self.model = AutoModelForImageTextToText.from_pretrained(
                 model_id, 
                 torch_dtype=torch.bfloat16, 
                 device_map="auto"
