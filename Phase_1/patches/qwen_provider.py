@@ -10,7 +10,7 @@ import numpy as np
 # Global store for the latest environment observations patched by our loader
 global_obs_store = {}
 
-class LlamaProvider(BaseLLM):
+class QwenProvider(BaseLLM):
     def __init__(self, conf: DictConfig):
         super().__init__(conf)
         
@@ -20,14 +20,14 @@ class LlamaProvider(BaseLLM):
             sys.path.append(phase1_path)
             
         try:
-            from utils import Llama32VisionWrapper
-            model_env = os.environ.get("ENACTTOM_VLM_MODEL", "llama3.2")
-            if model_env == "llama3.2":
-                self.wrapper = Llama32VisionWrapper()
+            from utils import Qwen3VLWrapper
+            model_env = os.environ.get("ENACTTOM_VLM_MODEL", "qwen3")
+            if model_env == "qwen3":
+                self.wrapper = Qwen3VLWrapper()
             else:
-                self.wrapper = Llama32VisionWrapper()
+                self.wrapper = Qwen3VLWrapper()
         except ImportError as e:
-            print(f"Error loading Llama32VisionWrapper: {e}")
+            print(f"Error loading Qwen3VLWrapper: {e}")
             self.wrapper = None
 
     def generate(

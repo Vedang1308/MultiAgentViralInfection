@@ -1,5 +1,5 @@
 llm:
-  _target_: habitat_llm.llm.llama_provider.LlamaProvider
+  _target_: habitat_llm.llm.qwen_provider.QwenProvider
   _partial_: True
 
 generation_params:

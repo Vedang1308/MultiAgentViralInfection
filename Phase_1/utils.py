@@ -35,30 +35,45 @@ class Checkpointer:
             json.dump(data, f, indent=4)
 
 
-class Llama32VisionWrapper:
+class Qwen3VLWrapper:
     def __init__(self):
         try:
-            from transformers import AutoProcessor, MllamaForConditionalGeneration
+            from transformers import AutoProcessor, Qwen3VLForConditionalGeneration
             import torch
-            print("Loading Llama-3.2-11B-Vision-Instruct in bfloat16...")
-            model_id = "meta-llama/Llama-3.2-11B-Vision-Instruct"
+            print("Loading Qwen3-VL 8B in bfloat16...")
+            model_id = "Qwen/Qwen3-VL-8B-Instruct"
             self.processor = AutoProcessor.from_pretrained(model_id)
-            self.model = MllamaForConditionalGeneration.from_pretrained(
+            self.model = Qwen3VLForConditionalGeneration.from_pretrained(
                 model_id, 
                 torch_dtype=torch.bfloat16, 
                 device_map="auto"
             )
-            print("Llama-3.2-Vision loaded successfully.")
+            print("Qwen3-VL loaded successfully.")
             self.active = True
         except ImportError as e:
-            print(f"Transformers library error: {e}. Running in simulation mode without real model.")
-            self.active = False
+            try:
+                from transformers import AutoProcessor, AutoModelForVision2Seq
+                import torch
+                print("Loading Qwen3-VL 8B with AutoModelForVision2Seq in bfloat16...")
+                model_id = "Qwen/Qwen3-VL-8B-Instruct"
+                self.processor = AutoProcessor.from_pretrained(model_id)
+                self.model = AutoModelForVision2Seq.from_pretrained(
+                    model_id, 
+                    torch_dtype=torch.bfloat16, 
+                    device_map="auto"
+                )
+                print("Qwen3-VL loaded successfully.")
+                self.active = True
+            except ImportError as e:
+                print(f"Transformers library error: {e}. Running in simulation mode without real model.")
+                self.active = False
 
     def generate(self, prompt: str, image=None) -> str:
         if not self.active:
             return "[Mocked Action Output]"
             
         import torch
+        from qwen_vl_utils import process_vision_info
         
         prompt_text = prompt.replace("<image>\\n", "").replace("<image>", "")
         
@@ -67,7 +82,7 @@ class Llama32VisionWrapper:
                 {
                     "role": "user",
                     "content": [
-                        {"type": "image"},
+                        {"type": "image", "image": image},
                         {"type": "text", "text": prompt_text},
                     ],
                 }
@@ -85,19 +100,20 @@ class Llama32VisionWrapper:
         text = self.processor.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
+        image_inputs, video_inputs = process_vision_info(messages)
         
-        if image is not None:
+        if image_inputs is not None:
             inputs = self.processor(
-                text=text,
-                images=image,
+                text=[text],
+                images=image_inputs,
+                videos=video_inputs,
+                padding=True,
                 return_tensors="pt",
             ).to("cuda", torch.bfloat16)
-            # Force pixel_values to bfloat16 explicitly if not done by processor
-            if "pixel_values" in inputs:
-                inputs["pixel_values"] = inputs["pixel_values"].to(torch.bfloat16)
         else:
             inputs = self.processor(
-                text=text,
+                text=[text],
+                padding=True,
                 return_tensors="pt",
             ).to("cuda", torch.bfloat16)
 
