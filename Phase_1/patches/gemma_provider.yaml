@@ -1,5 +1,5 @@
 llm:
-  _target_: habitat_llm.llm.llava_local.LLaVAProvider
+  _target_: habitat_llm.llm.gemma_provider.GemmaProvider
   _partial_: True
 
 generation_params:

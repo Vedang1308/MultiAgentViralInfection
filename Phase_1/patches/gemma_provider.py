@@ -10,7 +10,7 @@ import numpy as np
 # Global store for the latest environment observations patched by our loader
 global_obs_store = {}
 
-class LLaVAProvider(BaseLLM):
+class GemmaProvider(BaseLLM):
     def __init__(self, conf: DictConfig):
         super().__init__(conf)
         

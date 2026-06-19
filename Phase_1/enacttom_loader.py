@@ -10,11 +10,11 @@ import shutil
 
 # Automatically copy patches into EnactToM so Hydra and Python can find them
 patch_dir = os.path.join(os.path.dirname(__file__), "patches")
-shutil.copy(os.path.join(patch_dir, "llava_local.py"), os.path.join(enacttom_path, "habitat_llm/llm/llava_local.py"))
-shutil.copy(os.path.join(patch_dir, "llava_local.yaml"), os.path.join(enacttom_path, "habitat_llm/conf/llm/llava_local.yaml"))
+shutil.copy(os.path.join(patch_dir, "gemma_provider.py"), os.path.join(enacttom_path, "habitat_llm/llm/gemma_provider.py"))
+shutil.copy(os.path.join(patch_dir, "gemma_provider.yaml"), os.path.join(enacttom_path, "habitat_llm/conf/llm/gemma_provider.yaml"))
 
-# Ensure LLaVA local provider is importable
-import habitat_llm.llm.llava_local as llava_local
+# Ensure Gemma provider is importable
+import habitat_llm.llm.gemma_provider as gemma_provider
 
 # Ensure the 'data' directory exists in the CWD because habitat-lab expects to write 'data/default.physics_config.json'
 os.makedirs("data", exist_ok=True)
@@ -41,14 +41,14 @@ import habitat_llm.agent.env.environment_interface as ei
 original_step = ei.EnvironmentInterface.step
 def hooked_step(self, low_level_actions):
     obs, reward, done, info = original_step(self, low_level_actions)
-    llava_local.global_obs_store["latest_obs"] = obs
+    gemma_provider.global_obs_store["latest_obs"] = obs
     return obs, reward, done, info
 ei.EnvironmentInterface.step = hooked_step
 
 original_reset = ei.EnvironmentInterface.reset_environment
 def hooked_reset(self, *args, **kwargs):
     res = original_reset(self, *args, **kwargs)
-    llava_local.global_obs_store["latest_obs"] = self.batch
+    gemma_provider.global_obs_store["latest_obs"] = self.batch
     return res
 ei.EnvironmentInterface.reset_environment = hooked_reset
 
@@ -149,7 +149,7 @@ def main():
         "enacttom_loader.py",
         "--config-name", "examples/enacttom_2_robots",
         f"+model={args.model}",
-        "+llm_provider=llava_local",
+        "+llm_provider=gemma_provider",
         "+max_turns=30",
         f"+task_dir={abs_temp}",
         "hydra.run.dir=Phase_1/baselines/enacttom/${now:%Y-%m-%d_%H-%M-%S}",
