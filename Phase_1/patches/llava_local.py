@@ -20,10 +20,12 @@ class LLaVAProvider(BaseLLM):
             sys.path.append(phase1_path)
             
         try:
-            from utils import InferenceWrapper, Qwen2VLWrapper
+            from utils import InferenceWrapper, Qwen2VLWrapper, Gemma3Wrapper
             model_env = os.environ.get("ENACTTOM_VLM_MODEL", "llava-1.5")
             if model_env == "qwen2-vl":
                 self.wrapper = Qwen2VLWrapper()
+            elif model_env == "gemma3":
+                self.wrapper = Gemma3Wrapper()
             else:
                 self.wrapper = InferenceWrapper()
         except ImportError as e:

@@ -96,7 +96,7 @@ enacttom.examples.run_habitat_benchmark.run_single_task = hooked_run_single_task
 
 def main():
     parser = argparse.ArgumentParser(description="EnactToM Golden Path Miner")
-    parser.add_argument("--model", type=str, default="llava-1.5", choices=["llava-1.5", "qwen2-vl"], help="VLM Model to use")
+    parser.add_argument("--model", type=str, default="llava-1.5", choices=["llava-1.5", "qwen2-vl", "gemma3"], help="VLM Model to use")
     # Parse known args so Hydra can still process the rest if needed
     args, unknown = parser.parse_known_args()
     
