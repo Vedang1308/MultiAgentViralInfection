@@ -162,19 +162,29 @@ def main():
     # Run the official EnactToM benchmark loop!
     benchmark_main()
     
-    # Golden Path Cleanup
-    print("\nStarting Golden Path Cleanup...")
+    # Golden Path Classification
+    print("\nStarting Golden Path Classification...")
     baselines_dir = os.path.abspath("Phase_1/baselines/enacttom")
     if not os.path.exists(baselines_dir):
         return
         
-    # Find the most recent run directory
-    run_dirs = [os.path.join(baselines_dir, d) for d in os.listdir(baselines_dir) if os.path.isdir(os.path.join(baselines_dir, d))]
+    # Find the most recent run directory, excluding the classification folders
+    run_dirs = [os.path.join(baselines_dir, d) for d in os.listdir(baselines_dir) if os.path.isdir(os.path.join(baselines_dir, d)) and d not in ["success", "failed_completed", "failed_crashed"]]
     if not run_dirs:
         return
         
     latest_run_dir = max(run_dirs, key=os.path.getmtime)
     results_dir = os.path.join(latest_run_dir, "results")
+    
+    success_dir = os.path.join(baselines_dir, "success")
+    failed_completed_dir = os.path.join(baselines_dir, "failed_completed")
+    failed_crashed_dir = os.path.join(baselines_dir, "failed_crashed")
+    
+    os.makedirs(success_dir, exist_ok=True)
+    os.makedirs(failed_completed_dir, exist_ok=True)
+    os.makedirs(failed_crashed_dir, exist_ok=True)
+    
+    stats = {"success": 0, "failed_completed": 0, "failed_crashed": 0}
     
     if os.path.exists(results_dir):
         for task_dir in os.listdir(results_dir):
@@ -188,15 +198,34 @@ def main():
                     with open(results_json_path, 'r') as f:
                         res = json.load(f)
                     
-                    if not res.get("success", False):
-                        shutil.rmtree(task_path)
+                    success = res.get("success", False)
+                    done = res.get("done", False)
+                    turns = res.get("turns", 0)
+                    
+                    if success:
+                        shutil.move(task_path, os.path.join(success_dir, task_dir))
+                        stats["success"] += 1
+                    elif done:
+                        stats["failed_completed"] += 1
+                        if turns >= 25:
+                            shutil.move(task_path, os.path.join(failed_completed_dir, task_dir))
+                    else:
+                        stats["failed_crashed"] += 1
+                        if turns >= 25:
+                            shutil.move(task_path, os.path.join(failed_crashed_dir, task_dir))
                 except Exception as e:
                     print(f"Error reading {results_json_path}: {e}")
+                    stats["failed_crashed"] += 1
             else:
-                # If no results json exists, it likely failed or aborted
-                shutil.rmtree(task_path)
-                
-    print(f"Cleanup complete. Only 100% successful tasks remain in {results_dir}.")
+                stats["failed_crashed"] += 1
+
+    print("\n" + "="*50)
+    print("STATUS REPORT: MINER COMPLETION")
+    print("="*50)
+    print(f"Total Successes:                  {stats['success']}")
+    print(f"Total Failed/Completed (Loops):   {stats['failed_completed']}")
+    print(f"Total Failed/Crashed (Errors):    {stats['failed_crashed']}")
+    print("="*50 + "\n")
 
 if __name__ == "__main__":
     main()
