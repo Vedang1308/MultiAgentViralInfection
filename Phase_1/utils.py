@@ -73,7 +73,6 @@ class Qwen3VLWrapper:
             return "[Mocked Action Output]"
             
         import torch
-        from qwen_vl_utils import process_vision_info
         
         prompt_text = prompt.replace("<image>\\n", "").replace("<image>", "")
         
@@ -100,13 +99,11 @@ class Qwen3VLWrapper:
         text = self.processor.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
-        image_inputs, video_inputs = process_vision_info(messages)
         
-        if image_inputs is not None:
+        if image is not None:
             inputs = self.processor(
                 text=[text],
-                images=image_inputs,
-                videos=video_inputs,
+                images=[image],
                 padding=True,
                 return_tensors="pt",
             ).to("cuda", torch.bfloat16)
