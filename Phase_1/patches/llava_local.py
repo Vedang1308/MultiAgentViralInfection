@@ -20,10 +20,14 @@ class LLaVAProvider(BaseLLM):
             sys.path.append(phase1_path)
             
         try:
-            from utils import InferenceWrapper
-            self.wrapper = InferenceWrapper()
+            from utils import InferenceWrapper, Qwen2VLWrapper
+            model_env = os.environ.get("ENACTTOM_VLM_MODEL", "llava-1.5")
+            if model_env == "qwen2-vl":
+                self.wrapper = Qwen2VLWrapper()
+            else:
+                self.wrapper = InferenceWrapper()
         except ImportError as e:
-            print(f"Error loading InferenceWrapper: {e}")
+            print(f"Error loading wrappers: {e}")
             self.wrapper = None
 
     def generate(

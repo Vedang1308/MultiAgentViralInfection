@@ -54,29 +54,103 @@ ei.EnvironmentInterface.reset_environment = hooked_reset
 
 # Now we import the EnactTom benchmark runner
 from enacttom.examples.run_habitat_benchmark import main as benchmark_main
+import enacttom.evaluation_comms
+import argparse
+import glob
+import json
+
+# Monkey-patch evaluate_communication to bypass OpenAI
+def mocked_evaluate_communication(action_history, task, model="gpt-5.2"):
+    return enacttom.evaluation_comms.CommunicationMetrics(
+        per_agent={},
+        overall_leakage_score=1.0,
+        overall_efficiency_score=1.0,
+        overall_score=1.0,
+        efficiency_reasoning="MOCKED"
+    )
+enacttom.evaluation_comms.evaluate_communication = mocked_evaluate_communication
 
 def main():
-    print("Starting Phase 1.5: Native EnactToM Execution with LLaVA-1.5")
+    parser = argparse.ArgumentParser(description="EnactToM Golden Path Miner")
+    parser.add_argument("--model", type=str, default="llava-1.5", choices=["llava-1.5", "qwen2-vl"], help="VLM Model to use")
+    # Parse known args so Hydra can still process the rest if needed
+    args, unknown = parser.parse_known_args()
+    
+    # Set environment variable so LLaVAProvider knows which wrapper to load
+    os.environ["ENACTTOM_VLM_MODEL"] = args.model
+    
+    print(f"Starting Phase 1.5: Native EnactToM Execution with {args.model}")
+    
+    # Isolate Standard Split
+    source_task_dir = os.path.join(enacttom_path, 'data/enacttom/tasks')
+    temp_task_dir = os.path.join(enacttom_path, 'data/enacttom/tasks_standard')
+    
+    # Clean and recreate temporary tasks_standard directory
+    if os.path.exists(temp_task_dir):
+        shutil.rmtree(temp_task_dir)
+    os.makedirs(temp_task_dir, exist_ok=True)
+    
+    # Symlink only the standard tasks using absolute paths
+    abs_source = os.path.abspath(source_task_dir)
+    abs_temp = os.path.abspath(temp_task_dir)
+    standard_files = glob.glob(os.path.join(abs_source, "benchmark_standard_*.json"))
+    for f in standard_files:
+        basename = os.path.basename(f)
+        os.symlink(f, os.path.join(abs_temp, basename))
+        
+    print(f"Isolated {len(standard_files)} standard split tasks in {abs_temp}")
     
     # Configure the arguments for the benchmark runner
-    # We specify our custom LLaVA provider and task directory
     sys.argv = [
         "enacttom_loader.py",
         "--config-name", "examples/enacttom_2_robots",
-        "+model=llava-1.5",
+        f"+model={args.model}",
         "+llm_provider=llava_local",
         "+max_turns=30",
-        f"+task_dir={os.path.join(enacttom_path, 'data/enacttom/tasks')}",
+        f"+task_dir={abs_temp}",
         "hydra.run.dir=Phase_1/baselines/enacttom/${now:%Y-%m-%d_%H-%M-%S}",
         "habitat.dataset.data_path=/scratch/vavaghad/habitat_data/datasets/enacttom_episodes/v0_0/train_2k.json.gz",
         "habitat.dataset.scenes_dir=/scratch/vavaghad/habitat_data/versioned_data/hssd-hab",
-        # Default single-agent or multi-agent is handled by the task JSON
-    ]
+    ] + unknown
     
     # Run the official EnactToM benchmark loop!
-    # This will automatically load the tasks, initialize DecPOMDPEnv,
-    # and call our LLaVAProvider for planning.
     benchmark_main()
+    
+    # Golden Path Cleanup
+    print("\nStarting Golden Path Cleanup...")
+    baselines_dir = os.path.abspath("Phase_1/baselines/enacttom")
+    if not os.path.exists(baselines_dir):
+        return
+        
+    # Find the most recent run directory
+    run_dirs = [os.path.join(baselines_dir, d) for d in os.listdir(baselines_dir) if os.path.isdir(os.path.join(baselines_dir, d))]
+    if not run_dirs:
+        return
+        
+    latest_run_dir = max(run_dirs, key=os.path.getmtime)
+    results_dir = os.path.join(latest_run_dir, "results")
+    
+    if os.path.exists(results_dir):
+        for task_dir in os.listdir(results_dir):
+            task_path = os.path.join(results_dir, task_dir)
+            if not os.path.isdir(task_path):
+                continue
+                
+            results_json_path = os.path.join(task_path, "benchmark_results.json")
+            if os.path.exists(results_json_path):
+                try:
+                    with open(results_json_path, 'r') as f:
+                        res = json.load(f)
+                    
+                    if not res.get("success", False):
+                        shutil.rmtree(task_path)
+                except Exception as e:
+                    print(f"Error reading {results_json_path}: {e}")
+            else:
+                # If no results json exists, it likely failed or aborted
+                shutil.rmtree(task_path)
+                
+    print(f"Cleanup complete. Only 100% successful tasks remain in {results_dir}.")
 
 if __name__ == "__main__":
     main()

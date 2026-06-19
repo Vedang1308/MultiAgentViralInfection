@@ -99,3 +99,82 @@ class InferenceWrapper:
         if "ASSISTANT:" in output:
             return output.split("ASSISTANT:")[-1].strip()
         return output.strip()
+
+
+class Qwen2VLWrapper:
+    def __init__(self):
+        try:
+            from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
+            import torch
+            print("Loading Qwen2-VL 7B in bfloat16...")
+            model_id = "Qwen/Qwen2-VL-7B-Instruct"
+            self.processor = AutoProcessor.from_pretrained(model_id)
+            self.model = Qwen2VLForConditionalGeneration.from_pretrained(
+                model_id, 
+                torch_dtype=torch.bfloat16, 
+                device_map="auto"
+            )
+            print("Qwen2-VL loaded successfully.")
+            self.active = True
+        except ImportError as e:
+            print(f"Transformers library error: {e}. Running in simulation mode without real model.")
+            self.active = False
+
+    def generate(self, prompt: str, image=None) -> str:
+        if not self.active:
+            return "[Mocked Action Output]"
+            
+        import torch
+        from qwen_vl_utils import process_vision_info
+        
+        prompt_text = prompt.replace("<image>\n", "").replace("<image>", "")
+        
+        if image is not None:
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image", "image": image},
+                        {"type": "text", "text": prompt_text},
+                    ],
+                }
+            ]
+        else:
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt_text},
+                    ],
+                }
+            ]
+            
+        text = self.processor.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        image_inputs, video_inputs = process_vision_info(messages)
+        
+        if image_inputs is not None:
+            inputs = self.processor(
+                text=[text],
+                images=image_inputs,
+                videos=video_inputs,
+                padding=True,
+                return_tensors="pt",
+            ).to("cuda", torch.bfloat16)
+        else:
+            inputs = self.processor(
+                text=[text],
+                padding=True,
+                return_tensors="pt",
+            ).to("cuda", torch.bfloat16)
+
+        generate_ids = self.model.generate(**inputs, max_new_tokens=128)
+        generated_ids_trimmed = [
+            out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generate_ids)
+        ]
+        output_text = self.processor.batch_decode(
+            generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
+        )[0]
+        
+        return output_text.strip()
