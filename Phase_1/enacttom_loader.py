@@ -151,6 +151,8 @@ def main():
         f"+model={args.model}",
         "+llm_provider=qwen_provider",
         "+max_turns=30",
+        "evaluation.agents.agent_0.planner.plan_config.replanning_threshold=30",
+        "evaluation.agents.agent_1.planner.plan_config.replanning_threshold=30",
         f"+task_dir={abs_temp}",
         "hydra.run.dir=Phase_1/baselines/enacttom/${now:%Y-%m-%d_%H-%M-%S}",
         "habitat.dataset.data_path=/scratch/vavaghad/habitat_data/datasets/enacttom_episodes/v0_0/train_2k.json.gz",
