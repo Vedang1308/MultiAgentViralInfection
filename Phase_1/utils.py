@@ -46,7 +46,8 @@ class Gemma3Wrapper:
             self.model = AutoModelForImageTextToText.from_pretrained(
                 model_id, 
                 torch_dtype=torch.bfloat16, 
-                device_map="auto"
+                device_map="auto",
+                attn_implementation="eager"
             )
             print("Gemma-3 loaded successfully.")
             self.active = True
