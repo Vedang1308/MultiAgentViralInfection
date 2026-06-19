@@ -3,7 +3,7 @@ llm:
   _partial_: True
 
 generation_params:
-  model: "llava-1.5"
+  model: "Qwen3-VL-8B-Instruct"
   temperature: 0.2
   max_tokens: 128
 
