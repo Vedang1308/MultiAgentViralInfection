@@ -54,6 +54,7 @@ ei.EnvironmentInterface.reset_environment = hooked_reset
 
 # Now we import the EnactTom benchmark runner
 from enacttom.examples.run_habitat_benchmark import main as benchmark_main
+import enacttom.examples.run_habitat_benchmark
 import enacttom.evaluation_comms
 import argparse
 import glob
@@ -70,6 +71,29 @@ def mocked_evaluate_communication(action_history, task, model="gpt-5.2"):
     )
 enacttom.evaluation_comms.evaluate_communication = mocked_evaluate_communication
 
+# Monkey-patch run_single_task to save checkpoints
+original_run_single_task = enacttom.examples.run_habitat_benchmark.run_single_task
+def hooked_run_single_task(*args, **kwargs):
+    res = original_run_single_task(*args, **kwargs)
+    task_id = res.get("task_id")
+    if task_id:
+        ckpt_path = os.path.abspath("Phase_1/baselines/checkpoint.json")
+        try:
+            os.makedirs(os.path.dirname(ckpt_path), exist_ok=True)
+            if os.path.exists(ckpt_path):
+                with open(ckpt_path, "r") as f:
+                    ckpt = json.load(f)
+            else:
+                ckpt = []
+            if task_id not in ckpt:
+                ckpt.append(task_id)
+            with open(ckpt_path, "w") as f:
+                json.dump(ckpt, f)
+        except Exception as e:
+            print(f"Error saving checkpoint: {e}")
+    return res
+enacttom.examples.run_habitat_benchmark.run_single_task = hooked_run_single_task
+
 def main():
     parser = argparse.ArgumentParser(description="EnactToM Golden Path Miner")
     parser.add_argument("--model", type=str, default="llava-1.5", choices=["llava-1.5", "qwen2-vl"], help="VLM Model to use")
@@ -80,6 +104,17 @@ def main():
     os.environ["ENACTTOM_VLM_MODEL"] = args.model
     
     print(f"Starting Phase 1.5: Native EnactToM Execution with {args.model}")
+    
+    # Load checkpoint
+    ckpt_path = os.path.abspath("Phase_1/baselines/checkpoint.json")
+    completed_tasks = []
+    if os.path.exists(ckpt_path):
+        try:
+            with open(ckpt_path, "r") as f:
+                completed_tasks = json.load(f)
+            print(f"Loaded checkpoint with {len(completed_tasks)} completed tasks.")
+        except Exception as e:
+            print(f"Error reading checkpoint: {e}")
     
     # Isolate Standard Split
     source_task_dir = os.path.join(enacttom_path, 'data/enacttom/tasks')
@@ -94,11 +129,20 @@ def main():
     abs_source = os.path.abspath(source_task_dir)
     abs_temp = os.path.abspath(temp_task_dir)
     standard_files = glob.glob(os.path.join(abs_source, "benchmark_standard_*.json"))
+    
+    symlinked_count = 0
     for f in standard_files:
         basename = os.path.basename(f)
-        os.symlink(f, os.path.join(abs_temp, basename))
-        
-    print(f"Isolated {len(standard_files)} standard split tasks in {abs_temp}")
+        task_id = basename.replace(".json", "")
+        if task_id not in completed_tasks:
+            os.symlink(f, os.path.join(abs_temp, basename))
+            symlinked_count += 1
+            
+    print(f"Isolated {symlinked_count} pending standard split tasks in {abs_temp} (Skipped {len(standard_files) - symlinked_count} already completed)")
+    
+    if symlinked_count == 0:
+        print("All tasks completed! Golden Path mining finished.")
+        return
     
     # Configure the arguments for the benchmark runner
     sys.argv = [
