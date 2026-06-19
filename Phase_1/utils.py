@@ -35,21 +35,20 @@ class Checkpointer:
             json.dump(data, f, indent=4)
 
 
-class Gemma3Wrapper:
+class Llama32VisionWrapper:
     def __init__(self):
         try:
-            from transformers import AutoProcessor, AutoModelForImageTextToText
+            from transformers import AutoProcessor, MllamaForConditionalGeneration
             import torch
-            print("Loading Gemma-3 12B IT in bfloat16...")
-            model_id = "google/gemma-3-12b-it"
+            print("Loading Llama-3.2-11B-Vision-Instruct in bfloat16...")
+            model_id = "meta-llama/Llama-3.2-11B-Vision-Instruct"
             self.processor = AutoProcessor.from_pretrained(model_id)
-            self.model = AutoModelForImageTextToText.from_pretrained(
+            self.model = MllamaForConditionalGeneration.from_pretrained(
                 model_id, 
                 torch_dtype=torch.bfloat16, 
-                device_map="auto",
-                attn_implementation="eager"
+                device_map="auto"
             )
-            print("Gemma-3 loaded successfully.")
+            print("Llama-3.2-Vision loaded successfully.")
             self.active = True
         except ImportError as e:
             print(f"Transformers library error: {e}. Running in simulation mode without real model.")
@@ -68,7 +67,7 @@ class Gemma3Wrapper:
                 {
                     "role": "user",
                     "content": [
-                        {"type": "image", "image": image},
+                        {"type": "image"},
                         {"type": "text", "text": prompt_text},
                     ],
                 }
@@ -89,15 +88,16 @@ class Gemma3Wrapper:
         
         if image is not None:
             inputs = self.processor(
-                text=[text],
-                images=[image],
-                padding=True,
+                text=text,
+                images=image,
                 return_tensors="pt",
             ).to("cuda", torch.bfloat16)
+            # Force pixel_values to bfloat16 explicitly if not done by processor
+            if "pixel_values" in inputs:
+                inputs["pixel_values"] = inputs["pixel_values"].to(torch.bfloat16)
         else:
             inputs = self.processor(
-                text=[text],
-                padding=True,
+                text=text,
                 return_tensors="pt",
             ).to("cuda", torch.bfloat16)
 

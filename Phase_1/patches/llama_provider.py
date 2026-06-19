@@ -10,7 +10,7 @@ import numpy as np
 # Global store for the latest environment observations patched by our loader
 global_obs_store = {}
 
-class GemmaProvider(BaseLLM):
+class LlamaProvider(BaseLLM):
     def __init__(self, conf: DictConfig):
         super().__init__(conf)
         
@@ -20,14 +20,14 @@ class GemmaProvider(BaseLLM):
             sys.path.append(phase1_path)
             
         try:
-            from utils import Gemma3Wrapper
-            model_env = os.environ.get("ENACTTOM_VLM_MODEL", "gemma3")
-            if model_env == "gemma3":
-                self.wrapper = Gemma3Wrapper()
+            from utils import Llama32VisionWrapper
+            model_env = os.environ.get("ENACTTOM_VLM_MODEL", "llama3.2")
+            if model_env == "llama3.2":
+                self.wrapper = Llama32VisionWrapper()
             else:
-                self.wrapper = Gemma3Wrapper()
+                self.wrapper = Llama32VisionWrapper()
         except ImportError as e:
-            print(f"Error loading Gemma3Wrapper: {e}")
+            print(f"Error loading Llama32VisionWrapper: {e}")
             self.wrapper = None
 
     def generate(

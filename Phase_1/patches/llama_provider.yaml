@@ -1,5 +1,5 @@
 llm:
-  _target_: habitat_llm.llm.gemma_provider.GemmaProvider
+  _target_: habitat_llm.llm.llama_provider.LlamaProvider
   _partial_: True
 
 generation_params:
